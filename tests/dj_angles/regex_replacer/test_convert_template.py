@@ -368,19 +368,19 @@ def test_with_only():
     assert actual == expected
 
 
-def test_if_true_internal_tag():
-    expected = "<div>{% if True %}<span>test</span>{% endif %}</div>"
+def test_if_true():
+    expected = "{% if True %}<span>test</span>{% endif %}"
 
-    template = '<div><span dj-if="True">test</span></div>'
+    template = '<span dj-if="True">test</span>'
     actual = convert_template(template)
 
     assert actual == expected
 
 
-def test_if_true():
-    expected = "{% if True %}<span>test</span>{% endif %}"
+def test_if_true_internal_tag():
+    expected = "<div>{% if True %}<span>test</span>{% endif %}</div>"
 
-    template = '<span dj-if="True">test</span>'
+    template = '<div><span dj-if="True">test</span></div>'
     actual = convert_template(template)
 
     assert actual == expected
@@ -551,6 +551,52 @@ def test_void_element():
     assert actual == expected
 
 
+def test_multiple_void_elements():
+    expected = """
+{% if is_collection %}<input type="checkbox" checked>{% endif %}
+
+{% if is_collection %}<img src="image.jpg">{% endif %}
+"""
+
+    template = """
+<input type="checkbox" checked dj-if="is_collection">
+
+<img src="image.jpg" dj-if="is_collection">
+"""
+
+    actual = convert_template(template)
+
+    assert actual == expected
+
+
+def test_multiple_self_closing_elements():
+    expected = """
+{% if is_collection %}<input type="checkbox" checked />{% endif %}
+
+{% if is_collection %}<img src="image.jpg" />{% endif %}
+"""
+
+    template = """
+<input type="checkbox" checked dj-if="is_collection" />
+
+<img src="image.jpg" dj-if="is_collection" />
+"""
+
+    actual = convert_template(template)
+
+    assert actual == expected
+
+
+def test_void_element_extra_html():
+    expected = '<div>{% if is_collection %}<input type="checkbox" checked>{% endif %}</div>'
+
+    template = '<div><input type="checkbox" checked dj-if="is_collection"></div>'
+
+    actual = convert_template(template)
+
+    assert actual == expected
+
+
 def test_self_closing_element():
     expected = '{% if is_collection %}<input type="checkbox" checked />{% endif %}'
 
@@ -633,4 +679,135 @@ def test_extra_else():
     with pytest.raises(AssertionError) as e:
         convert_template(template)
 
-    assert e.exconly() == "AssertionError: Invalid use of dj-else"
+    assert e.exconly() == "AssertionError: Invalid use of dj-else attribute"
+
+
+def test_if_component_self_closing():
+    expected = "{% if True %}<dj-partial>{% include 'partial.html' %}</dj-partial>{% endif %}"
+
+    template = '<dj-partial dj-if="True" />'
+    actual = convert_template(template)
+
+    assert actual == expected
+
+
+def test_if_component_self_closing_extra_html():
+    expected = "<span></span>{% if True %}<dj-partial>{% include 'partial.html' %}</dj-partial>{% endif %}<span></span>"
+
+    template = '<span></span><dj-partial dj-if="True" /><span></span>'
+    actual = convert_template(template)
+
+    assert actual == expected
+
+
+def test_if_nested_endif():
+    expected = """
+{% if movies %}<div>
+  {% if True %}<span></span>{% endif %}
+</div>
+{% else %}<p>
+</p>{% endif %}
+"""
+
+    template = """
+<div dj-if="movies">
+  <span dj-if="True"></span dj-endif>
+</div>
+<p dj-else>
+</p>
+"""
+    actual = convert_template(template)
+
+    assert actual == expected
+
+
+def test_if_nested_fi():
+    expected = """
+{% if movies %}<div>
+  {% if True %}<span></span>{% endif %}
+</div>
+{% else %}<p>
+</p>{% endif %}
+"""
+
+    template = """
+<div dj-if="movies">
+  <span dj-if="True"></span dj-fi>
+</div>
+<p dj-else>
+</p>
+"""
+    actual = convert_template(template)
+
+    assert actual == expected
+
+
+def test_if_elif_nested():
+    expected = """
+{% if movies %}<div>
+  {% if True %}<span></span>
+  {% elif True %}<span></span>
+  {% elif True %}<span></span>{% endif %}
+</div>
+{% else %}<p>
+</p>{% endif %}
+"""
+
+    template = """
+<div dj-if="movies">
+  <span dj-if="True"></span>
+  <span dj-elif="True"></span>
+  <span dj-elif="True"></span dj-endif>
+</div>
+<p dj-else>
+</p>
+"""
+    actual = convert_template(template)
+
+    assert actual == expected
+
+
+def test_if_nested_same_tag_name():
+    expected = """
+{% if movies %}<div>
+  {% if True %}<div></div>
+  {% elif True %}<div></div>
+  {% elif True %}<div></div>{% endif %}
+</div>
+{% else %}<div>
+</div>{% endif %}
+"""
+
+    template = """
+<div dj-if="movies">
+  <div dj-if="True"></div>
+  <div dj-elif="True"></div>
+  <div dj-elif="True"></div dj-endif>
+</div>
+<div dj-else>
+</div>
+"""
+    actual = convert_template(template)
+
+    assert actual == expected
+
+
+def test_if_nested():
+    expected = """
+{% if movies %}<div>
+  {% if True %}<span></span>{% endif %}
+</div>
+{% else %}<p>
+</p>{% endif %}
+"""
+
+    template = """
+<div dj-if="movies">
+  <span dj-if="True"></span>
+</div>
+<p dj-else>
+</p>
+"""
+    actual = convert_template(template)
+
+    assert actual == expected
